@@ -1,0 +1,101 @@
+# enable-all / disable-few; the disable list is copied from headscale (the
+# house reference config), not curated per-repo.
+version: "2"
+
+linters:
+  default: all
+  # golangci-lint v2.13 deprecated exhaustruct, gomodguard and wsl in favour of
+  # separately-registered successors (exhaustruct_v5, gomodguard_v2, wsl_v5).
+  # Under `default: all` the successor is a distinct linter that the legacy name
+  # no longer disables, so it switches itself on — exhaustruct_v5 alone surfaced
+  # 25 findings on pre-existing code. Both names are listed until upstream drops
+  # the deprecated ones.
+  disable:
+    - cyclop
+    - depguard
+    - dupl
+    - exhaustruct
+    - exhaustruct_v5
+    - funcorder
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - godox
+    - gomodguard
+    - gomodguard_v2
+    - interfacebloat
+    - ireturn
+    - lll
+    - maintidx
+    - makezero
+    - mnd
+    - musttag
+    - nestif
+    - nolintlint
+    - paralleltest
+    - revive
+    - tagliatelle
+    - testpackage
+    - varnamelen
+    - wrapcheck
+    - wsl
+    - wsl_v5
+  settings:
+    goconst:
+      # Test fixtures repeat strings by their nature; extracting them obscures
+      # the test rather than helping. Production code stays strict.
+      ignore-tests: true
+      min-occurrences: 5
+      min-len: 6
+    forbidigo:
+      forbid:
+        - pattern: 'time\.Sleep'
+          msg: >-
+            time.Sleep is forbidden.
+            In tests: use assert.EventuallyWithT for polling/waiting patterns.
+            In production code: use a backoff strategy (e.g., cenkalti/backoff)
+            or proper synchronization primitives.
+      analyze-types: true
+    gocritic:
+      disabled-checks:
+        - appendAssign
+        - ifElseChain
+    nlreturn:
+      block-size: 4
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      # Tests may skip some rigor; err113 because tests inject one-off fake
+      # errors by nature.
+      - path: _test\.go
+        linters:
+          - err113
+          - errcheck
+          - forcetypeassert
+          - gosec
+          - intrange
+          - modernize
+          - noctx
+    paths:
+      - gen
+
+# Mirrors the treefmt formatting check (the source of truth) so `golangci-lint
+# fmt` produces the same result: gofumpt + goimports grouping local packages last.
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/kradalby/golinkdiff
+  exclusions:
+    paths:
+      - gen/
+      - testdata/
